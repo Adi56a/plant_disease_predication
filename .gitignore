@@ -1,3 +1,5 @@
 archive.zip 
 data/
 plant_disease_model.keras
+final_plant_disease_model.h5
+potato/
