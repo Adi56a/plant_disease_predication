@@ -8,7 +8,7 @@ from PIL import Image
 model = tf.keras.models.load_model('plant_disease_model.keras')
 
 # Class labels for the model's output
-class_names = ['Healthy', 'Powdery', 'Rust']
+class_names = ['Early Blight', 'Healthy', 'Late Blight']
 
 # Define the image size
 IMG_SIZE = 224
@@ -93,4 +93,4 @@ if uploaded_file is not None:
         st.markdown(f"### **Confidence**: {confidence * 100:.2f}%", unsafe_allow_html=True)
 
 # Footer with the name "Renuka" at the bottom-right
-st.markdown("<p class='footer'>Renuka</p>", unsafe_allow_html=True)
+st.markdown("<p class='footer'>Renuka </p>", unsafe_allow_html=True)
