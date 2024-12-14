@@ -6,20 +6,15 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt
 
 # Set path to the data directory
-DATA_DIR = 'data'
+DATA_DIR = 'potato/PotatoPlants'  # Root folder for your potato dataset
 
-# Directory paths
-TRAIN_DIR = os.path.join(DATA_DIR, 'Train', 'Train')
-VALIDATION_DIR = os.path.join(DATA_DIR, 'Validation', 'Validation')
-TEST_DIR = os.path.join(DATA_DIR, 'Test', 'Test')
-
-# Set parameters
+# Set parameters for images to processing
 IMG_SIZE = 224  # Resize images to 224x224
 BATCH_SIZE = 16  # Reduce batch size to alleviate memory issues
 EPOCHS = 10
-NUM_CLASSES = 3  # Healthy, Powdery, Rust
+NUM_CLASSES = 3  # Healthy, Early Blight, Late Blight
 
-# Image Data Generators
+# Image Data Generators with validation split
 train_datagen = ImageDataGenerator(
     rescale=1.0/255.0,  # Normalize the images
     rotation_range=20,  # Data augmentation
@@ -28,34 +23,28 @@ train_datagen = ImageDataGenerator(
     shear_range=0.2,
     zoom_range=0.2,
     horizontal_flip=True,
-    fill_mode='nearest'
+    fill_mode='nearest',
+    validation_split=0.2  # 20% of data will be used for validation
 )
 
-validation_datagen = ImageDataGenerator(rescale=1.0/255.0)
 test_datagen = ImageDataGenerator(rescale=1.0/255.0)
 
-# Data generators
+# Data generators for training and validation (using validation_split)
 train_generator = train_datagen.flow_from_directory(
-    TRAIN_DIR,
-    target_size=(IMG_SIZE, IMG_SIZE),
-    batch_size=BATCH_SIZE,
-    class_mode='categorical'
-)
-
-validation_generator = validation_datagen.flow_from_directory(
-    VALIDATION_DIR,
+    DATA_DIR,
     target_size=(IMG_SIZE, IMG_SIZE),
     batch_size=BATCH_SIZE,
     class_mode='categorical',
+    subset='training'  # Use this subset for training
+)
+
+validation_generator = train_datagen.flow_from_directory(
+    DATA_DIR,
+    target_size=(IMG_SIZE, IMG_SIZE),
+    batch_size=BATCH_SIZE,
+    class_mode='categorical',
+    subset='validation',  # Use this subset for validation
     shuffle=False  # Ensure shuffle=False for validation
-)
-
-test_generator = test_datagen.flow_from_directory(
-    TEST_DIR,
-    target_size=(IMG_SIZE, IMG_SIZE),
-    batch_size=1,  # We want to make individual predictions
-    class_mode='categorical',
-    shuffle=False  # Don't shuffle for testing
 )
 
 # Print the number of samples
@@ -68,21 +57,21 @@ def create_model():
         layers.InputLayer(input_shape=(IMG_SIZE, IMG_SIZE, 3)),  # Explicit input layer
         layers.Conv2D(32, (3, 3), activation='relu'),
         layers.MaxPooling2D(2, 2),
-        layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.Conv2D(64, (3, 3), activation='relu'),       # Rectified Linear Unit
         layers.MaxPooling2D(2, 2),
         layers.Conv2D(128, (3, 3), activation='relu'),
         layers.MaxPooling2D(2, 2),
         layers.Flatten(),
         layers.Dense(512, activation='relu'),
         layers.Dropout(0.5),
-        layers.Dense(NUM_CLASSES, activation='softmax')  # Output layer with 3 classes
+        layers.Dense(NUM_CLASSES, activation='softmax')  # Output layer with 3 classes: Healthy, Early Blight, Late Blight
     ])
     return model
 
 # Compile the model
 model = create_model()
 model.compile(
-    optimizer='adam',
+    optimizer='adam',                 # We are using Adam's optimizer
     loss='categorical_crossentropy',
     metrics=['accuracy']
 )
@@ -109,7 +98,8 @@ history = model.fit(
 )
 
 # Evaluate the model
-test_loss, test_acc = model.evaluate(test_generator)
+# Using the validation set as the test set since no separate test set is defined
+test_loss, test_acc = model.evaluate(validation_generator)
 print(f'Test Accuracy: {test_acc * 100:.2f}%')
 
 # Save the final model
